@@ -4,12 +4,17 @@ import pymunk as pmk
 
 class BaseEntity:
     def __init__(self):
-        self._mass = 10
-        self._size = 15
+        self.type = 'Base'
+        self._mass = 200
+        self._size = 100
         self.body = pmk.Body()
         self.shape = pmk.Circle(body=self.body, radius=self._size / 2)
         self.shape.mass = self._mass
-        self.color = (100, 100, 100, 255)
+        self.color = np.array([253, 100, 100, 253], dtype=np.ubyte)
+
+    def update(self, dt):
+        ...
+        #self.body.apply_force_at_local_point((100 * dt, 0), (0, 1))
 
     @property
     def mass(self):
@@ -28,6 +33,22 @@ class BaseEntity:
     def size(self, new_size):
         self._size = new_size
         self.shape.unsafe_set_radius(new_size / 2)
+
+    @property
+    def position(self) -> pmk.Vec2d | tuple[float, float]:
+        return self.body.position
+
+    @position.setter
+    def position(self, pos: pmk.Vec2d | tuple[float, float]):
+        self.body.position = pos
+
+    @property
+    def rotation(self):
+        return self.body.angle
+
+    @rotation.setter
+    def rotation(self, float):
+        self.body.angle = float
 
 
 '''

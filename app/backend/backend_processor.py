@@ -1,7 +1,6 @@
 import multiprocessing as mp
 
 import asyncio
-from asyncio import AbstractEventLoop
 
 from app.backend.WorldLogic.world import WorldLoader
 from technical.funcs import dprint
@@ -15,37 +14,57 @@ class BackendProcessor(mp.Process):
 
         self.f_to_b_queue: mp.Queue = f_to_b_queue
         self.b_to_f_queue: mp.Queue = b_to_f_queue
-        self.loop: AbstractEventLoop | None = None
         self.kill_switch: asyncio.Event | None = None
         self.world_loader: WorldLoader | None = None
-
         import platform
 
         super().__init__(name=f'CECE-{CURRENT_VERSION}-{platform.python_version()=}-back')
 
     def run(self) -> None:
-        self.loop = asyncio.get_event_loop()
         self.kill_switch = asyncio.Event()
         dprint(f'process {self.name} started')
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.run_coroutines())
 
+    def quit(self):
+        dprint('backend exited')
+        self.kill_switch.set()
+
     async def run_coroutines(self):
-        await asyncio.gather(self.connection_process(), self.simulation_process())
+        await asyncio.gather(
+            self.connection_process(),
+            self.simulation_process(),
+            self.send_sim_data(),
+        )
 
     async def simulation_process(self):
         while not (self.world_loader or self.kill_switch.is_set()):
             await asyncio.sleep(2)
 
+        if self.kill_switch.is_set():
+            return
+
         while not self.kill_switch.is_set():
-            self.world_loader.world.simulate_step()
-            if self.b_to_f_queue.qsize():
-                self.b_to_f_queue.put(('entities', self.world_loader.world.light_getstate()))
-            await asyncio.sleep(0)
+            await self.world_loader.world.simulate_step(self)
+        self.world_loader.save_world()
+
+    async def send_sim_data(self):
+        loop = asyncio.get_event_loop()
+        while not (self.world_loader or self.kill_switch.is_set()):
+            await asyncio.sleep(2)
+        t = 0
+        while not self.kill_switch.is_set():
+            if self.b_to_f_queue.empty():
+                t = self.world_loader.world.world_age
+                self.b_to_f_queue.put(('drawables', self.world_loader.world.light_getstate()))
+            await asyncio.sleep(1/60)
 
     async def connection_process(self):
+
+        loop = asyncio.get_event_loop()
+
         # ------------
-        # processors
+        #  processors
         # ------------
         def process_cmd(command):
             match command:
@@ -53,7 +72,6 @@ class BackendProcessor(mp.Process):
                     ...
 
                 case 'new_world', *args:
-                    dprint('new_world')
                     if not self.world_loader:
                         self.world_loader = WorldLoader(self)
                     self.world_loader.new_world(str(uuid.uuid4()))
@@ -78,11 +96,11 @@ class BackendProcessor(mp.Process):
                 case _:
                     dprint(f"backend received a request and couldn't process it: {request=}")
 
-        # ------------
-        # process loop
-        # ------------
+        # -----------
+        #  main loop
+        # -----------
         while not self.kill_switch.is_set():
-            data = await self.loop.run_in_executor(None, self.f_to_b_queue.get)
+            data = await loop.run_in_executor(None, self.f_to_b_queue.get)
             match data:
 
                 case 'cmd', *cmd:
@@ -94,9 +112,8 @@ class BackendProcessor(mp.Process):
                     process_request(req)
 
                 case 'front_exit' | 'exit':
-
-                    self.kill_switch.set()
-                    break
+                    self.quit()
+                    return
 
                 case _:
                     dprint(f"backend received some data and couldn't process it: {data=}")

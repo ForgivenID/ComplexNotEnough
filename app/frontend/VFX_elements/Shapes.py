@@ -24,3 +24,28 @@ class Sweeper:
             0, (self.list.position[1] - 80 * dt + 2 * self.height) % (
                         self.window.height + 2.2 * self.height) - 2 * self.height
         )
+
+
+class CustomMouse:
+    def __init__(self, window: arc.Window):
+        super().__init__([], [(0, 0, 0, 0)])
+        self.window = window
+        self.mouse = arc.shape_list.ShapeElementList()
+        self.mouse.append(
+            arc.shape_list.create_ellipse_outline(self.window.mouse['x'] + 9,
+                                                  self.window.mouse['y'] - 15,
+                                                  20, 35, (100, 100, 100, 255), 5, -30, 3)
+        )
+        self.mouse.append(
+            arc.shape_list.create_ellipse_filled(self.window.mouse['x'] + 9,
+                                                 self.window.mouse['y'] - 15,
+                                                 10, 25, (255, 255, 255, 150), -30, 3)
+        )
+        arc.schedule(self.draw, 0.01)
+
+    def draw(self):
+        self.mouse.draw()
+
+    def on_update(self):
+        if 'x' in self.window.mouse.data and 'y' in self.window.mouse.data:
+            self.mouse.position = self.window.mouse['x'], self.window.mouse['y']
