@@ -19,10 +19,10 @@ class FrontendProcessor(mp.Process):
         self.f_to_b_queue: mp.Queue = f_to_b_queue
         self.b_to_f_queue: mp.Queue = b_to_f_queue
         self.world_age = 0
-        self.entities: list = []
+        self.entities: dict[int, tuple] = {}
         self.selection_data = {}
         import platform
-        super().__init__(name=f'CECE-{CURRENT_VERSION}-{platform.python_version()=}-front')
+        super().__init__(name=f'CNE-{CURRENT_VERSION}-{platform.python_version()=}-front')
 
     def preload_misc(self):
         arc.load_font(os.path.join(prefix, 'assets/Good Times 400.ttf'))
@@ -44,7 +44,6 @@ class FrontendProcessor(mp.Process):
     def quit(self):
         self.send_to_back('front_exit')
         arc.exit()
-        self.kill()
 
     def connection_process(self, _):
         if self.b_to_f_queue.empty():

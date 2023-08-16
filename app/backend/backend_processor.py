@@ -18,7 +18,7 @@ class BackendProcessor(mp.Process):
         self.world_loader: WorldLoader | None = None
         import platform
 
-        super().__init__(name=f'CECE-{CURRENT_VERSION}-{platform.python_version()=}-back')
+        super().__init__(name=f'CNE-{CURRENT_VERSION}-{platform.python_version()=}-back')
 
     def run(self) -> None:
         self.kill_switch = asyncio.Event()

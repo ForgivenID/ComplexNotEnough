@@ -1,5 +1,6 @@
 import arcade as arc
 import arcade.gui as ui
+import pyglet.math
 
 from app.frontend.Entities.base_entity import BaseEntity
 from app.frontend.VFX_elements.Shapes import Sweeper
@@ -80,53 +81,93 @@ class MainMenu(arc.View):
                 self.processor.quit()
 
 
+class SmartCamera(arc.Camera):
+    def __init__(self, viewport):
+        super().__init__(viewport=viewport)
+
+
 class SimulationSection(arc.Section):
-    def __init__(self, l, b, w, h, processor):
-        super().__init__(l, b, w, h, name='simulation', local_mouse_coordinates=True)
-        self.camera = arc.Camera()
-        self.processor = processor
-        self.entities_list = arc.SpriteList()
-        self.entities_alias: dict[int, BaseEntity] = {}
-        self.world_age = 0
+    def __init__(self, entities_list, entities_alias):
+        super().__init__(100 / 1920 * self.window.width,
+                         100 / 1200 * self.window.height,
+                         1720 / 1920 * self.window.width,
+                         1000 / 1200 * self.window.height,
+                         local_mouse_coordinates=True)
+        self.entities_list = entities_list
+        self.entities_alias: dict[int, BaseEntity] = entities_alias
+        self.camera = arc.Camera(viewport=(
+                100 / 1920 * self.window.width,
+                100 / 1200 * self.window.height,
+                1720 / 1920 * self.window.width,
+                1000 / 1200 * self.window.height,
+            ))
+        self.camera.center((0, 0))
 
     def on_update(self, delta_time: float):
-        if self.world_age != self.processor.world_age:
-            for x, y, angle, diam, color, uid in self.processor.entities:
-                if uid not in self.entities_alias:
-                    self.entities_alias[uid] = BaseEntity(x + self.left, y + self.bottom, diam, angle, color,
-                                                          self.entities_list)
-                    continue
-                self.entities_alias[uid].update(x + self.left, y + self.bottom, diam, angle, color)
-            self.entities_list.update()
-            self.world_age = self.processor.world_age
+        if self.camera.zoom <= 1:
+            [e.set_quality(3) for e in self.entities_alias.values()]
+        elif 1 < self.camera.zoom <= 1.5:
+            [e.set_quality(2) for e in self.entities_alias.values()]
+        elif 1.5 < self.camera.zoom <= 3:
+            [e.set_quality(1) for e in self.entities_alias.values()]
+        else:
+            [e.set_quality(0) for e in self.entities_alias.values()]
+
+    def on_mouse_scroll(self, x: int, y: int, scroll_x: int, scroll_y: int):
+        self.camera.zoom = max(0.5, min(5.0, self.camera.zoom - scroll_y / 3))
+
+    def on_mouse_drag(self, x: int, y: int, dx: int, dy: int, _buttons: int, _modifiers: int):
+        self.camera.move_to(self.camera.position + pyglet.math.Vec2(-dx, -dy) * self.camera.zoom**2 * 2)
 
     def on_draw(self):
-        arc.draw_lrbt_rectangle_filled(self.left, self.right, self.bottom, self.top, (100, 100, 100, 255))
+        self.camera.use()
         self.entities_list.draw()
 
     def on_key_press(self, symbol: int, modifiers: int):
         match symbol, modifiers:
             case arc.key.ESCAPE, _:
-                self.processor.quit()
-
+                self.view.processor.quit()
 
 
 class SimulationView(arc.View):
     def __init__(self, processor):
         super().__init__()
-        self.sim_section = SimulationSection(
-            50 / 1920 * self.window.width,
-            50 / 1200 * self.window.height,
-            1520 / 1920 * self.window.width,
-            1100 / 1200 * self.window.height,
-            processor
-        )
-        self.add_section(self.sim_section)
         self.window.set_mouse_visible(True)
+
+        # self.simulation_camera.anchor = (0, 0)
+
+        self.gui_camera = arc.Camera
         self.processor = processor
+        self.entities_list = arc.SpriteList()
+        self.entities_alias: dict[int, BaseEntity] = {}
+        self.world_age = 0
+
+        self.add_section(SimulationSection(self.entities_list, self.entities_alias))
+
+    def on_update(self, delta_time: float):
+        if self.world_age != self.processor.world_age:
+
+            buff = self.processor.entities.copy()
+
+            for uid, e in buff.items():
+                x, y, angle, diam, color, uid = e
+                if uid not in self.entities_alias:
+                    self.entities_alias[uid] = BaseEntity(x, y, diam, angle, color,
+                                                          self.entities_list)
+                self.entities_alias[uid].update(x, y, diam, angle, color)
+            disappeared = []
+            for uid, e in self.entities_alias.items():
+                if uid not in self.processor.entities:
+                    e.disappear()
+                    disappeared.append(uid)
+            for uid in disappeared:
+                self.entities_alias.pop(uid)
+
+            self.entities_list.update()
+            self.world_age = self.processor.world_age
 
     def on_draw(self):
-        self.clear(arc.color.BEAU_BLUE)
+        self.clear(arc.color.DARK_BLUE_GRAY)
 
     def on_key_press(self, symbol: int, modifiers: int):
         match symbol, modifiers:

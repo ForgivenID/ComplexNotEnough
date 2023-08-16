@@ -2,7 +2,7 @@
 # World parameters
 world:
   world_seed: -1
-  petridish_radius: 50.0
+  petridish_radius: 5.0
 
 # Physics parameters
 physics:
@@ -12,7 +12,7 @@ physics:
   collision_map_resolution: 10 #per unit of space
   time_step: 2
   iterations_per_tick: 35
-  sim_speed: 1
+  sim_speed: 3
 
 # Graphics parameters
 graphics:
