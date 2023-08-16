@@ -7,10 +7,12 @@ class BaseWindow(arc.Window):
     def __init__(self):
         super().__init__(
             title=f'ComplexNotEnough - [???]',
-            update_rate=1 / 60,
+            update_rate=1 / 70,
+            draw_rate=1/80,
             style=arc.pyglet.window.Window.WINDOW_STYLE_BORDERLESS,
             fullscreen=FULLSCREEN,
             samples=7,
+            vsync=True
         )
         self.switch_to()
         self.center_window()

@@ -20,6 +20,7 @@ class FrontendProcessor(mp.Process):
         self.b_to_f_queue: mp.Queue = b_to_f_queue
         self.world_age = 0
         self.entities: dict[int, tuple] = {}
+        self.backend_tickrate = 0
         self.selection_data = {}
         import platform
         super().__init__(name=f'CNE-{CURRENT_VERSION}-{platform.python_version()=}-front')
@@ -55,6 +56,9 @@ class FrontendProcessor(mp.Process):
 
             case 'drawables', drawables:
                 self.entities, self.world_age = drawables
+
+            case 'tickrate', tickrate:
+                self.backend_tickrate = tickrate
 
             case 'back_exit' | 'exit':
                 dprint('frontend exited')

@@ -45,7 +45,7 @@ class BackendProcessor(mp.Process):
             return
 
         while not self.kill_switch.is_set():
-            await self.world_loader.world.simulate_step(self)
+            await self.world_loader.world.simulate_step()
         self.world_loader.save_world()
 
     async def send_sim_data(self):
@@ -57,6 +57,7 @@ class BackendProcessor(mp.Process):
             if self.b_to_f_queue.empty():
                 t = self.world_loader.world.world_age
                 self.b_to_f_queue.put(('drawables', self.world_loader.world.light_getstate()))
+                self.b_to_f_queue.put(('tickrate', round(self.world_loader.world.tickrate, 2)))
             await asyncio.sleep(1/60)
 
     async def connection_process(self):

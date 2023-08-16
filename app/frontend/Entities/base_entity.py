@@ -50,9 +50,9 @@ class BaseEntity:
         self.quality = q
 
     def update(self, x, y, diam, angle, color):
-        self._position = (x, y)
+        self._position = (x * 5, y * 5)
         self._rotation = angle
-        self._size = diam
+        self._size = diam * 5
         self._color = color
         self._update()
 
