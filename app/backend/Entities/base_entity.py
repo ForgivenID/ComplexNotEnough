@@ -3,21 +3,29 @@ import pymunk as pmk
 import random as rn
 
 class BaseEntity:
-    def __init__(self):
+    def __init__(self, world):
         self.type = 'Base'
         self._size = 10
         self._mass = (self.size / 2) ** 2 * 3.14 * 0.05
         self.body = pmk.Body()
         self.shape = pmk.Circle(body=self.body, radius=self._size / 2)
+        self.shape.elasticity = 1.0
+        self.shape.friction = 0.0
         self.shape.mass = self._mass
-        self.shape.elasticity = 1
-        self.color = np.array([253, 100, 100, 253], dtype=np.ubyte)
 
-        self.rotation += (rn.random() - .5) * 4 * np.pi
-        self.body.apply_force_at_local_point((3000, 0), (0, 1))
+        self.objects = [self.body, self.shape]
+
+        self.color = np.array([rn.randint(150, 255), rn.randint(150, 255), rn.randint(150, 255), 255], dtype=np.ubyte)
 
     def update(self, dt):
         ...
+
+
+    def die(self):
+        self.world.space.remove(*self.objects)
+        self.world.entities.remove(self)
+
+
     @property
     def mass(self):
         return self._mass
@@ -53,11 +61,6 @@ class BaseEntity:
     @rotation.setter
     def rotation(self, float):
         self.body.angle = float
-
-    def die(self):
-        space = self.body.space
-        if space:
-            space.remove(*self.body.shapes, self.body)
 
 
 '''

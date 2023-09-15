@@ -18,7 +18,7 @@ class BackendProcessor(mp.Process):
         self.world_loader: WorldLoader | None = None
         import platform
 
-        super().__init__(name=f'CECE-{CURRENT_VERSION}-{platform.python_version()=}-back')
+        super().__init__(name=f'CNE-{CURRENT_VERSION}-{platform.python_version()=}-back')
 
     def run(self) -> None:
         self.kill_switch = asyncio.Event()
@@ -45,7 +45,7 @@ class BackendProcessor(mp.Process):
             return
 
         while not self.kill_switch.is_set():
-            await self.world_loader.world.simulate_step(self)
+            await self.world_loader.world.simulate_step()
         self.world_loader.save_world()
 
     async def send_sim_data_async(self):
@@ -58,8 +58,10 @@ class BackendProcessor(mp.Process):
     def send_single_tick(self):
         if self.b_to_f_queue.empty():
             self.b_to_f_queue.put(('drawables', self.world_loader.world.light_getstate()))
+            self.b_to_f_queue.put(('tickrate', round(self.world_loader.world.tickrate, 2)))
 
-    async def connection_process(self):
+
+async def connection_process(self):
 
         loop = asyncio.get_event_loop()
 
