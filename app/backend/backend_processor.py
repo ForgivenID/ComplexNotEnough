@@ -45,7 +45,7 @@ class BackendProcessor(mp.Process):
             return
 
         while not self.kill_switch.is_set():
-            await self.world_loader.world.simulate_step()
+            await self.world_loader.world.simulate_step(self)
         self.world_loader.save_world()
 
     async def send_sim_data_async(self):
@@ -61,61 +61,61 @@ class BackendProcessor(mp.Process):
             self.b_to_f_queue.put(('tickrate', round(self.world_loader.world.tickrate, 2)))
 
 
-async def connection_process(self):
+    async def connection_process(self):
 
-        loop = asyncio.get_event_loop()
+            loop = asyncio.get_event_loop()
 
-        # ------------
-        #  processors
-        # ------------
-        def process_cmd(command):
-            match command:
-                case 'load_world', *args:
-                    ...
+            # ------------
+            #  processors
+            # ------------
+            def process_cmd(command):
+                match command:
+                    case 'load_world', *args:
+                        ...
 
-                case 'new_world', *args:
-                    if not self.world_loader:
-                        self.world_loader = WorldLoader(self)
-                    self.world_loader.new_world(str(uuid.uuid4()))
+                    case 'new_world', *args:
+                        if not self.world_loader:
+                            self.world_loader = WorldLoader(self)
+                        self.world_loader.new_world(str(uuid.uuid4()))
 
-                case _:
-                    dprint(f"backend received a cmd and couldn't process it: {command=}")
+                    case _:
+                        dprint(f"backend received a cmd and couldn't process it: {command=}")
 
-        def process_request(request):
-            match request:
-                case 'set_viewport', *args:
-                    ...
+            def process_request(request):
+                match request:
+                    case 'set_viewport', *args:
+                        ...
 
-                case 'get_data', *args:
-                    ...
+                    case 'get_data', *args:
+                        ...
 
-                case 'get_simulation_speed', *args:
-                    ...
+                    case 'get_simulation_speed', *args:
+                        ...
 
-                case 'set_simulation_speed', *args:
-                    ...
+                    case 'set_simulation_speed', *args:
+                        ...
 
-                case _:
-                    dprint(f"backend received a request and couldn't process it: {request=}")
+                    case _:
+                        dprint(f"backend received a request and couldn't process it: {request=}")
 
-        # -----------
-        #  main loop
-        # -----------
-        while not self.kill_switch.is_set():
-            data = await loop.run_in_executor(None, self.f_to_b_queue.get)
-            match data:
+            # -----------
+            #  main loop
+            # -----------
+            while not self.kill_switch.is_set():
+                data = await loop.run_in_executor(None, self.f_to_b_queue.get)
+                match data:
 
-                case 'cmd', *cmd:
+                    case 'cmd', *cmd:
 
-                    process_cmd(cmd)
+                        process_cmd(cmd)
 
-                case 'request', *req:
+                    case 'request', *req:
 
-                    process_request(req)
+                        process_request(req)
 
-                case 'front_exit' | 'exit':
-                    self.quit()
-                    return
+                    case 'front_exit' | 'exit':
+                        self.quit()
+                        return
 
-                case _:
-                    dprint(f"backend received some data and couldn't process it: {data=}")
+                    case _:
+                        dprint(f"backend received some data and couldn't process it: {data=}")

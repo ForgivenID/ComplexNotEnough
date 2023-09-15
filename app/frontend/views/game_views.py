@@ -150,7 +150,7 @@ class SimulationSection(arc.Section):
         [e.set_quality(self.quality) for e in self.entities_alias.values()]
 
     def on_mouse_scroll(self, x: int, y: int, scroll_x: int, scroll_y: int):
-        self.camera.zoom = max(1.5, min(5.0, self.camera.zoom - scroll_y / 100))
+        self.camera.zoom = max(1.5, min(5.0, self.camera.zoom - (scroll_y*self.camera.zoom) / 100))
         self.set_quality()
 
     def on_mouse_drag(self, x: int, y: int, dx: int, dy: int, _buttons: int, _modifiers: int):

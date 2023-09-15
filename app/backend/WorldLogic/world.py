@@ -56,7 +56,7 @@ class World:
         ...
 
     def populate(self):
-        for _ in range(15000):
+        for _ in range(10000):
             e = BaseEntity(self)
             e.position = pmk.Vec2d((rn.random() - .5) * 9000, (rn.random() - .5) * 9000)
             e.rotation = 360 * rn.random()
@@ -74,7 +74,7 @@ class World:
                 entity.update(sub_time_step)
                 for entity in self.entities
             ]
-            if -.2 < 1 / 60 - (time.time() - t1) < .2 and False:
+            if -.1 < 1 / 60 - (time.time() - t1) < .1:
                 processor.send_single_tick()
         self.world_age += 1 / 60
         processor.send_single_tick()
@@ -82,10 +82,10 @@ class World:
         # print(dt)
         if dt > 0:
             p = dt / (self.settings['physics']['time_step'] * self.settings['physics']['sim_speed'])
-            print(f"!!! {dt=}, {p:.2f}%")
+            # print(f"!!! {dt=}, {p:.2f}%")
             await asyncio.sleep(dt)
             return
-        print(f"??? {dt=}, {dt / self.settings['physics']['time_step']:.2f}%")
+        # print(f"??? {dt=}, {dt / self.settings['physics']['time_step']:.2f}%")
 
     def light_getstate(self) -> tuple[ShortEntityData, int]:
         return {id(entity): (

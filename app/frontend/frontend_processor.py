@@ -56,6 +56,7 @@ class FrontendProcessor(mp.Process):
 
             case 'drawables', drawables:
                 self.entities, self.world_age = drawables
+                print(len(self.entities))
 
             case 'tickrate', tickrate:
                 self.backend_tickrate = tickrate
