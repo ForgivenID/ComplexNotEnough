@@ -34,7 +34,7 @@ class BackendProcessor(mp.Process):
         await asyncio.gather(
             self.connection_process(),
             self.simulation_process(),
-            self.send_sim_data(),
+            #self.send_sim_data_async(),
         )
 
     async def simulation_process(self):
@@ -48,16 +48,16 @@ class BackendProcessor(mp.Process):
             await self.world_loader.world.simulate_step(self)
         self.world_loader.save_world()
 
-    async def send_sim_data(self):
-        loop = asyncio.get_event_loop()
+    async def send_sim_data_async(self):
         while not (self.world_loader or self.kill_switch.is_set()):
             await asyncio.sleep(2)
-        t = 0
         while not self.kill_switch.is_set():
-            if self.b_to_f_queue.empty():
-                t = self.world_loader.world.world_age
-                self.b_to_f_queue.put(('drawables', self.world_loader.world.light_getstate()))
-            await asyncio.sleep(1/60)
+            self.send_single_tick()
+            await asyncio.sleep(0)
+
+    def send_single_tick(self):
+        if self.b_to_f_queue.empty():
+            self.b_to_f_queue.put(('drawables', self.world_loader.world.light_getstate()))
 
     async def connection_process(self):
 

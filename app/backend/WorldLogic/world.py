@@ -18,6 +18,7 @@ boundary_points = [
     (-100, -30), (-100, 300), (0, 300), (0, 0), (1000, 0), (1000, 300), (1100, 300), (1100, -30)
 ]
 
+sim_range = range(0)
 
 class World:
     def __init__(self, name):
@@ -36,40 +37,41 @@ class World:
 
         # Physics
         self.space = pmk.Space()
-        down = pmk.Segment(self.space.static_body, (0, 0), (1000, 0), 10)
-        right = pmk.Segment(self.space.static_body, (1000, 0), (1000, 1000), 10)
-        left = pmk.Segment(self.space.static_body, (0, 0), (0, 1000), 10)
-        self.space.add(down, right, left)
-        self.space.gravity = 0, -10
+        self.space.use_spatial_hash(20, 30000)
+        self.space.gravity = 0, 0
+
+        global sim_range
+        sim_range = range(self.settings['physics']['iterations_per_tick'] * self.settings['physics']['sim_speed'])
 
     def populate(self):
-        for _ in range(10):
+        for _ in range(15000):
             e = BaseEntity()
-            e.position = pmk.Vec2d(rn.random() * 1000, rn.random() * 1000)
-            e.rotation = 360 * rn.random()
+            e.position = pmk.Vec2d(rn.random() * 5000, rn.random() * 5000)
             self.entities.append(e)
             self.space.add(e.body, e.shape)
 
     async def simulate_step(self, processor):
         sub_time_step = self.settings['physics']['time_step'] / self.settings['physics']['iterations_per_tick']
         t1 = time.time()
-        [
-            entity.update(sub_time_step)
-            for entity in self.entities
-        ]
-
-        for _ in range(self.settings['physics']['iterations_per_tick'] * self.settings['physics']['sim_speed']):
-            self.world_age += sub_time_step
-            self.space.step(sub_time_step)
-            await asyncio.sleep(sub_time_step)
-        dt = self.settings['physics']['time_step'] * self.settings['physics']['sim_speed'] - (time.time() - t1)
+        for _ in range(self.settings['physics']['sim_speed']):
+            for _ in range(self.settings['physics']['iterations_per_tick']):
+                self.space.step(1 / 60 / self.settings['physics']['iterations_per_tick'])
+            [
+                entity.update(sub_time_step)
+                for entity in self.entities
+            ]
+            if -.2 < 1 / 60 - (time.time() - t1) < .2 and False:
+                processor.send_single_tick()
+        self.world_age += 1 / 60
+        processor.send_single_tick()
+        dt = 1 / 60 - (time.time() - t1)
         # print(dt)
         if dt > 0:
-            p = dt/(self.settings['physics']['time_step'] * self.settings['physics']['sim_speed'])
+            p = dt / (self.settings['physics']['time_step'] * self.settings['physics']['sim_speed'])
             print(f"!!! {dt=}, {p:.2f}%")
-            await asyncio.sleep(0)
+            await asyncio.sleep(dt)
             return
-        print(f"??? {dt=}, {dt/self.settings['physics']['time_step']:.2f}%")
+        print(f"??? {dt=}, {dt / self.settings['physics']['time_step']:.2f}%")
 
     def light_getstate(self) -> tuple[list[tuple[float, float, float, float, tuple[int, int, int, int], int]], int]:
         return [
